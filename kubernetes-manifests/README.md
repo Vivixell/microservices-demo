@@ -1,8 +1,4 @@
-# ./kubernetes-manifests
+# kubernetes-manifests
 
-:warning: Kubernetes manifests provided in this directory are not directly
-deployable to a cluster. They are meant to be used with `skaffold` command to
-insert the correct `image:` tags.
-
-Use the manifests in [/release](/release) directory which are configured with
-pre-built public images.
+Plain Kubernetes YAML manifests for the Online Boutique application. 
+Managed by ArgoCD — do not apply manually. Image tags are updated automatically by the CI pipeline.
