@@ -179,5 +179,8 @@ resource "kubernetes_storage_class" "gp3" {
     encrypted = "true"
   }
 
-  depends_on = [aws_eks_addon.ebs_csi]
+  depends_on = [
+    aws_eks_addon.ebs_csi,
+    module.eks  # This forces Terraform to wait for all IAM and RBAC propagation
+  ]
 }
