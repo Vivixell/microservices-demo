@@ -5,5 +5,6 @@ output "repository_urls" {
 
 output "registry_id" {
   description = "AWS account ID — used for docker login in GitHub Actions"
-  value       = one(values(aws_ecr_repository.services)).registry_id
+  # Directly reference one of the keys in your map to grab the shared account ID
+  value       = aws_ecr_repository.services["frontend"].registry_id
 }
