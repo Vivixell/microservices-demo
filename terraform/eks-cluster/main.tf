@@ -54,6 +54,26 @@ module "eks" {
 
   cluster_endpoint_public_access = true
 
+    # ------------------------------------------------
+  # EKS Access Management
+  # ------------------------------------------------
+  enable_cluster_creator_admin_permissions = true
+  access_entries = {
+    github_actions = {
+      principal_arn = "arn:aws:iam::021104859097:role/github-actions-online-boutique"
+
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
   cluster_addons = {
     coredns = {
       addon_version = "v1.11.3-eksbuild.2"
