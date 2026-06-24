@@ -152,7 +152,7 @@ jobs:
         if: steps.check-image.outputs.exists == 'false'
         uses: docker/build-push-action@v5
         with:
-          context: ./src/${{ matrix.service }}
+          context: ./src/${{ matrix.service }}${{ matrix.service == 'cartservice' && '/src' || '' }}
           push: false   # Hold the push until Trivy clears it
           load: true    # Load into local daemon so Trivy can scan it
           tags: ${{ steps.login-ecr.outputs.registry }}/online-boutique/${{ matrix.service }}:${{ steps.tag.outputs.IMAGE_TAG }}
