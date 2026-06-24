@@ -20,6 +20,8 @@ terraform {
   }
 }
 
+
+
 provider "aws" {
   region = "us-east-1"
 }
@@ -39,11 +41,13 @@ data "terraform_remote_state" "vpc" {
 # ──────────────────────────────────────────────
 # Pull EKS outputs (for node security group)
 # ──────────────────────────────────────────────
+
 data "terraform_remote_state" "eks" {
   backend = "s3"
+
   config = {
     bucket = "drimble-statefiles"
-    key    = "online-boutique/eks/terraform.tfstate"
+    key    = "online-boutique/eks-cluster/terraform.tfstate"
     region = "us-east-1"
   }
 }
