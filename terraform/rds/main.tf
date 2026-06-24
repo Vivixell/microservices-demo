@@ -53,8 +53,8 @@ data "terraform_remote_state" "eks" {
 }
 
 locals {
-  private_subnets      = data.terraform_remote_state.vpc.outputs.private_subnet_ids
-  node_security_group  = data.terraform_remote_state.eks.outputs.node_security_group_id
+  private_subnets     = data.terraform_remote_state.vpc.outputs.private_subnet_ids
+  node_security_group = data.terraform_remote_state.eks.outputs.node_security_group_id
 }
 
 # ──────────────────────────────────────────────
@@ -132,13 +132,13 @@ resource "aws_security_group" "rds" {
 # RDS PostgreSQL Instance
 # ──────────────────────────────────────────────
 resource "aws_db_instance" "sonarqube" {
-  identifier        = "sonarqube-db"
-  engine            = "postgres"
-  engine_version    = "16"
-  instance_class    = "db.t3.medium"
-  db_name           = "sonar"
-  username          = jsondecode(aws_secretsmanager_secret_version.sonarqube_db.secret_string)["username"]
-  password          = jsondecode(aws_secretsmanager_secret_version.sonarqube_db.secret_string)["password"]
+  identifier     = "sonarqube-db"
+  engine         = "postgres"
+  engine_version = "16"
+  instance_class = "db.t3.medium"
+  db_name        = "sonar"
+  username       = jsondecode(aws_secretsmanager_secret_version.sonarqube_db.secret_string)["username"]
+  password       = jsondecode(aws_secretsmanager_secret_version.sonarqube_db.secret_string)["password"]
 
   # Storage
   storage_type          = "gp3"

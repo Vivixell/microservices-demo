@@ -237,45 +237,6 @@ resource "helm_release" "sonarqube" {
   }
 }
 
-# ──────────────────────────────────────────────
-# ArgoCD Application
-# ──────────────────────────────────────────────
-resource "kubernetes_manifest" "argocd_app" {
-  manifest = {
-    apiVersion = "argoproj.io/v1alpha1"
-    kind       = "Application"
-    metadata = {
-      name       = "online-boutique"
-      namespace  = "argocd"
-      finalizers = ["resources-finalizer.argocd.argoproj.io"]
-    }
-    spec = {
-      project = "default"
-      source = {
-        repoURL        = "https://github.com/Vivixell/microservices-demo"
-        targetRevision = "main"
-        path           = "kubernetes-manifests"
-      }
-      destination = {
-        server    = "https://kubernetes.default.svc"
-        namespace = "default"
-      }
-      syncPolicy = {
-        automated = {
-          prune    = true
-          selfHeal = true
-        }
-        syncOptions = [
-          "CreateNamespace=true",
-          "PrunePropagationPolicy=foreground",
-          "PruneLast=true"
-        ]
-      }
-    }
-  }
-
-  depends_on = [helm_release.argocd]
-}
 
 # ──────────────────────────────────────────────
 # Grafana Admin Password
