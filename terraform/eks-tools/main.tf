@@ -182,6 +182,8 @@ resource "helm_release" "cert_manager" {
     name  = "crds.enabled"
     value = "true"
   }
+
+  depends_on = [helm_release.aws_load_balancer_controller]
 }
 
 resource "helm_release" "sonarqube" {
