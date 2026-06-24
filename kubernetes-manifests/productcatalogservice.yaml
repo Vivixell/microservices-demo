@@ -43,7 +43,7 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: 021104859097.dkr.ecr.us-east-1.amazonaws.com/online-boutique/productcatalogservice:latest
+        image: 021104859097.dkr.ecr.us-east-1.amazonaws.com/online-boutique/productcatalogservice:2d30cf454078b8c063cadcccc3ed1a150fc85aa1
         ports:
         - containerPort: 3550
         env:
