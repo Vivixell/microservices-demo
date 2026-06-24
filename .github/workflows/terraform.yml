@@ -206,3 +206,40 @@ jobs:
             });
       - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve tfplan
+
+    # ──────────────────────────────────────────────
+  # 6. ArgoCD App (Needs EKS Tools — ArgoCD must be installed first)
+  # ──────────────────────────────────────────────
+  argocd_app:
+    name: ArgoCD App — ${{ github.event_name == 'push' && 'Apply' || 'Plan' }}
+    runs-on: ubuntu-latest
+    needs: eks_tools
+    defaults:
+      run:
+        working-directory: terraform/argocd-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - run: terraform init
+      - run: terraform validate
+      - id: plan
+        run: terraform plan -out=tfplan -no-color
+        continue-on-error: true
+      - if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `#### ArgoCD App Plan 📝\n\`\`\`\n${{ steps.plan.outputs.stdout }}\n\`\`\``
+            });
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve tfplan
