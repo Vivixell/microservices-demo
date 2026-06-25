@@ -58,9 +58,14 @@ data "aws_secretsmanager_secret_version" "sonarqube_db" {
   secret_id = data.terraform_remote_state.rds.outputs.db_secret_arn
 }
 
+data "aws_secretsmanager_secret_version" "grafana_github_oauth" {
+  secret_id = "online-boutique/grafana-github-oauth"
+}
+
 locals {
-  cluster_name = data.terraform_remote_state.eks_cluster.outputs.cluster_name
-  db_creds     = jsondecode(data.aws_secretsmanager_secret_version.sonarqube_db.secret_string)
+  cluster_name  = data.terraform_remote_state.eks_cluster.outputs.cluster_name
+  db_creds      = jsondecode(data.aws_secretsmanager_secret_version.sonarqube_db.secret_string)
+  grafana_oauth = jsondecode(data.aws_secretsmanager_secret_version.grafana_github_oauth.secret_string)
 }
 
 # ──────────────────────────────────────────────
@@ -166,6 +171,16 @@ resource "helm_release" "kube_prometheus_stack" {
   set {
     name  = "grafana.adminPassword"
     value = random_password.grafana_admin.result
+  }
+
+  set_sensitive {
+    name  = "grafana.grafana\\.ini.auth\\.github.client_id"
+    value = local.grafana_oauth["client_id"]
+  }
+
+  set_sensitive {
+    name  = "grafana.grafana\\.ini.auth\\.github.client_secret"
+    value = local.grafana_oauth["client_secret"]
   }
 
 }
