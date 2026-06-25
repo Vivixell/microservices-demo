@@ -15,6 +15,7 @@ jobs:
   teardown:
     name: Destroy All Resources
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4
@@ -34,4 +35,6 @@ jobs:
           chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 
       - name: Run teardown script
+        env:
+            AUTO_APPROVE: "true"
         run: bash teardown.sh

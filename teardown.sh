@@ -2,7 +2,7 @@
 # ──────────────────────────────────────────────
 # Online Boutique — Teardown Script
 # Destroys all AWS resources in the correct order
-# Run from the repo root: bash scripts/teardown.sh
+# Run from the repo root: bash teardown.sh
 # ──────────────────────────────────────────────
 
 set -e
@@ -14,23 +14,78 @@ echo "⚠️  This will destroy ALL resources for the Online Boutique project."
 echo "    Region: $AWS_REGION"
 echo "    Cluster: $CLUSTER_NAME"
 echo ""
-read -p "Are you sure? Type 'yes' to continue: " confirm
-if [ "$confirm" != "yes" ]; then
-  echo "Aborted."
-  exit 0
+
+if [ "${AUTO_APPROVE:-false}" != "true" ]; then
+  read -p "Are you sure? Type 'yes' to continue: " confirm
+  if [ "$confirm" != "yes" ]; then
+    echo "Aborted."
+    exit 0
+  fi
 fi
+
+# ── Helper: poll until no ALBs matching cluster name remain ──
+wait_for_albs_deleted() {
+  echo "Polling for ALB deletion (timeout: 10 min)..."
+  local deadline=$(( $(date +%s) + 600 ))
+  while true; do
+    count=$(aws elbv2 describe-load-balancers \
+      --region "$AWS_REGION" \
+      --query "length(LoadBalancers[?contains(LoadBalancerName, 'online-boutique')])" \
+      --output text 2>/dev/null || echo "0")
+    if [ "$count" -eq 0 ]; then
+      echo "  ✅ All ALBs deleted."
+      break
+    fi
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      echo "  ⚠️  Timeout waiting for ALBs. Check EC2 Console → Load Balancers."
+      echo "      Delete remaining ALBs and Target Groups manually, then re-run vpc destroy."
+      break
+    fi
+    echo "  $count ALB(s) still exist — waiting 30s..."
+    sleep 30
+  done
+}
+
+# ── Helper: wait for EKS nodegroups to finish any in-progress operations ──
+wait_for_eks_ready() {
+  echo "Checking EKS cluster status..."
+  local deadline=$(( $(date +%s) + 300 ))
+  while true; do
+    status=$(aws eks describe-cluster \
+      --name "$CLUSTER_NAME" \
+      --region "$AWS_REGION" \
+      --query "cluster.status" \
+      --output text 2>/dev/null || echo "NOT_FOUND")
+    if [ "$status" = "ACTIVE" ] || [ "$status" = "NOT_FOUND" ]; then
+      break
+    fi
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      echo "  ⚠️  EKS cluster did not reach ACTIVE state in time, proceeding anyway."
+      break
+    fi
+    echo "  Cluster status: $status — waiting 20s..."
+    sleep 20
+  done
+}
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Step 1 — Delete Kubernetes Ingresses (triggers ALB deletion)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION" 2>/dev/null || true
 
-echo "Deleting all Ingress resources across all namespaces..."
-kubectl delete ingress --all --all-namespaces 2>/dev/null || echo "  (kubectl not available or no ingresses found, skipping)"
+wait_for_eks_ready
 
-echo "Waiting 90s for AWS Load Balancer Controller to delete ALBs..."
-sleep 90
+if aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"; then
+  echo "Deleting all Ingress resources across all namespaces..."
+  kubectl delete ingress --all --all-namespaces 2>/dev/null || echo "  (no ingresses found)"
+
+  echo "Waiting for AWS Load Balancer Controller to delete ALBs..."
+  wait_for_albs_deleted
+else
+  echo "  ⚠️  Could not connect to cluster — it may already be gone."
+  echo "      Checking for orphaned ALBs anyway..."
+  wait_for_albs_deleted
+fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -56,30 +111,36 @@ for service in "${services[@]}"; do
       --repository-name "$repo" \
       --region "$AWS_REGION" \
       --image-ids "$image_ids" > /dev/null
+    echo "  ✅ Cleared $repo"
+  else
+    echo "  (no images found in $repo, skipping)"
   fi
 done
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 3 — Terraform destroy: eks-tools"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-cd terraform/eks-tools
-terraform init -reconfigure
-terraform destroy -auto-approve
-cd ../..
-
-echo "Sleeping 60s to allow any remaining LBC-managed resources to clean up..."
-sleep 60
-
-
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 3b — Terraform destroy: argocd-app"
+echo "Step 3 — Terraform destroy: argocd-app"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 cd terraform/argocd-app
 terraform init -reconfigure
 terraform destroy -auto-approve
 cd ../..
 
+# Give ArgoCD time to finish reconciliation teardown before pulling LBC
+echo "Waiting 60s for ArgoCD to finish reconciliation teardown..."
+sleep 60
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Step 3b — Terraform destroy: eks-tools"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+cd terraform/eks-tools
+terraform init -reconfigure
+terraform destroy -auto-approve
+cd ../..
+
+echo "Polling to confirm all LBC-managed resources are gone before proceeding..."
+wait_for_albs_deleted
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -99,6 +160,10 @@ terraform init -reconfigure
 terraform destroy -auto-approve
 cd ../..
 
+# RDS deletion (especially with final snapshot skipped) can take a few minutes
+echo "Waiting 120s for RDS instance to fully terminate..."
+sleep 120
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Step 6 — Terraform destroy: eks-cluster"
@@ -108,14 +173,19 @@ terraform init -reconfigure
 terraform destroy -auto-approve
 cd ../..
 
+# EKS control plane deletion can take 10–15 min; Terraform waits internally,
+# but we add a safety buffer before hitting the VPC
+echo "Waiting 60s buffer after EKS cluster destroy before VPC teardown..."
+sleep 60
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Step 7 — Terraform destroy: vpc"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "NOTE: If this step fails with DependencyViolation, an orphaned ALB"
-echo "still exists. Go to EC2 Console → Load Balancers, delete it and its"
-echo "Target Groups manually, then re-run: cd terraform/vpc && terraform destroy -auto-approve"
+echo "still exists. Delete it manually in EC2 Console → Load Balancers,"
+echo "then re-run: cd terraform/vpc && terraform destroy -auto-approve"
 echo ""
 cd terraform/vpc
 terraform init -reconfigure
