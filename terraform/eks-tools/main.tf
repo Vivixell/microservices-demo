@@ -183,12 +183,6 @@ resource "helm_release" "kube_prometheus_stack" {
     value = local.grafana_oauth["client_secret"]
   }
 
-  set {
-    name  = "grafana.assertNoLeakedSecrets"
-    value = "false"
-  }
-
-
 }
 
 resource "helm_release" "cert_manager" {
