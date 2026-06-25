@@ -43,7 +43,7 @@ spec:
               - ALL
           privileged: false
           readOnlyRootFilesystem: true
-        image: 021104859097.dkr.ecr.us-east-1.amazonaws.com/online-boutique/emailservice:2d30cf454078b8c063cadcccc3ed1a150fc85aa1
+        image: 021104859097.dkr.ecr.us-east-1.amazonaws.com/online-boutique/emailservice:9ef01195371a9cef27ec89a3818190e5757c91e9
         ports:
         - containerPort: 8080
         env:
