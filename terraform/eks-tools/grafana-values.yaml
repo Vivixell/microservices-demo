@@ -1,23 +1,15 @@
 grafana:
-  env:
-    GF_AUTH_GITHUB_ENABLED: "true"
-    GF_AUTH_GITHUB_ALLOW_SIGN_UP: "true"
-    GF_AUTH_GITHUB_SCOPES: "user:email,read:org"
-    GF_AUTH_GITHUB_AUTH_URL: "https://github.com/login/oauth/authorize"
-    GF_AUTH_GITHUB_TOKEN_URL: "https://github.com/login/oauth/access_token"
-    GF_AUTH_GITHUB_API_URL: "https://api.github.com/user"
-    GF_AUTH_GITHUB_ALLOWED_ORGANIZATIONS: "Vivixell"
-    GF_SERVER_ROOT_URL: "https://grafana.vicops.xyz"
-
-  envValueFrom:
-    GF_AUTH_GITHUB_CLIENT_ID:
-      secretKeyRef:
-        name: grafana-github-oauth
-        key: client_id
-    GF_AUTH_GITHUB_CLIENT_SECRET:
-      secretKeyRef:
-        name: grafana-github-oauth
-        key: client_secret
+  grafana.ini:
+    server:
+      root_url: https://grafana.vicops.xyz
+    auth.github:
+      enabled: true
+      allow_sign_up: true
+      scopes: user:email,read:org
+      auth_url: https://github.com/login/oauth/authorize
+      token_url: https://github.com/login/oauth/access_token
+      api_url: https://api.github.com/user
+      allowed_organizations: Vivixell
 
   ingress:
     enabled: true
