@@ -29,3 +29,7 @@ vendor/
 bootstrap/.terraform/
 bootstrap/terraform.tfstate
 terraform/eks-tools/.terraform/
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
