@@ -173,16 +173,6 @@ resource "helm_release" "kube_prometheus_stack" {
     value = random_password.grafana_admin.result
   }
 
-  set_sensitive {
-    name  = "grafana.grafana\\.ini.auth\\.github.client_id"
-    value = local.grafana_oauth["client_id"]
-  }
-
-  set_sensitive {
-    name  = "grafana.grafana\\.ini.auth\\.github.client_secret"
-    value = local.grafana_oauth["client_secret"]
-  }
-
   set {
     name  = "grafana.assertNoLeakedSecrets"
     value = "false"
