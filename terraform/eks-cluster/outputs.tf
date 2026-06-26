@@ -26,3 +26,7 @@ output "aws_lbc_irsa_arn" {
 output "cluster_autoscaler_irsa_arn" {
   value = module.cluster_autoscaler_irsa.iam_role_arn
 }
+
+output "external_dns_irsa_arn" {
+  value = module.external_dns_irsa.iam_role_arn
+}

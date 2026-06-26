@@ -271,3 +271,49 @@ resource "null_resource" "wait_for_argocd" {
 
   depends_on = [helm_release.argocd]
 }
+
+
+resource "helm_release" "external_dns" {
+  name             = "external-dns"
+  repository       = "https://kubernetes-sigs.github.io/external-dns/"
+  chart            = "external-dns"
+  namespace        = "kube-system"
+  version          = "1.21.1"
+
+  set {
+    name  = "provider.name"
+    value = "aws"
+  }
+
+  set {
+    name  = "aws.region"
+    value = "us-east-1"
+  }
+
+  set {
+    name  = "aws.zoneType"
+    value = "public"
+  }
+
+  set {
+    name  = "txtOwnerId"
+    value = "online-boutique"   # unique ID so ExternalDNS owns its records
+  }
+
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = data.terraform_remote_state.eks_cluster.outputs.external_dns_irsa_arn
+  }
+
+  set {
+    name  = "domainFilters[0]"
+    value = "vicops.xyz"
+  }
+
+  set {
+    name  = "policy"
+    value = "sync"   # sync = creates AND deletes records when Ingress is removed
+  }
+
+  depends_on = [helm_release.aws_load_balancer_controller]
+}

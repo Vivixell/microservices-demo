@@ -13,6 +13,7 @@ grafana:
       alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:021104859097:certificate/43512578-fa24-495f-b805-77cb2f3b5fae
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
       alb.ingress.kubernetes.io/ssl-redirect: "443"
+      external-dns.alpha.kubernetes.io/hostname: grafana.vicops.xyz
     hosts:
       - grafana.vicops.xyz
     path: /
