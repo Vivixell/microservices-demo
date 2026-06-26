@@ -70,7 +70,7 @@ wait_for_eks_ready() {
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Step 1 — Delete Kubernetes Ingresses (triggers ALB deletion)"
+echo "Step 1 — Delete Kubernetes Ingresses (triggers ALB & DNS deletion)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 wait_for_eks_ready
@@ -175,8 +175,9 @@ cd ../..
 
 # EKS control plane deletion can take 10–15 min; Terraform waits internally,
 # but we add a safety buffer before hitting the VPC
-echo "Waiting 60s buffer after EKS cluster destroy before VPC teardown..."
-sleep 60
+echo "  - Route53 Base Hosted Zone (ExternalDNS successfully removed the subdomains)"
+echo "Waiting 180s buffer after EKS cluster destroy before VPC teardown..."
+sleep 180
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -214,7 +215,6 @@ echo ""
 echo "✅ Teardown complete."
 echo ""
 echo "Not deleted (manual cleanup if needed):"
-echo "  - S3 state bucket: drimble-statefiles"
+echo "  - S3 Terraform state bucket: drimble-statefiles"
 echo "  - IAM role: github-actions-online-boutique"
-echo "  - ACM certificate"
-echo "  - Route53 records"
+echo "  - ACM certificate (vicops.xyz)"
