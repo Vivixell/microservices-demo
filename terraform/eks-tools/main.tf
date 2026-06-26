@@ -260,3 +260,14 @@ resource "aws_secretsmanager_secret_version" "grafana_admin" {
     password = random_password.grafana_admin.result
   })
 }
+
+resource "null_resource" "wait_for_argocd" {
+  provisioner "local-exec" {
+    command = <<-EOT
+      aws eks update-kubeconfig --name ${local.cluster_name} --region us-east-1
+      kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=180s
+    EOT
+  }
+
+  depends_on = [helm_release.argocd]
+}
