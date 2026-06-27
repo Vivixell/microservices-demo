@@ -117,6 +117,26 @@ for service in "${services[@]}"; do
   fi
 done
 
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Step 2b — Remove ArgoCD finalizer"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Ensure we are connected to the cluster before patching
+if aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION" 2>/dev/null; then
+  kubectl patch application online-boutique -n argocd \
+    --type json \
+    -p='[{"op":"remove","path":"/metadata/finalizers"}]' 2>/dev/null \
+    || echo "  (ArgoCD app not found or already removed)"
+  
+  echo "Waiting 60s to ensure finalizer drops..."
+  sleep 60
+else
+  echo "  (Could not connect to cluster, skipping finalizer removal)"
+fi
+
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Step 3 — Terraform destroy: argocd-app"
